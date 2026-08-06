@@ -18,11 +18,10 @@ from collections.abc import AsyncGenerator
 from urllib.parse import urlparse
 
 import asyncpg
-import pytest
 import pytest_asyncio
 from sqlalchemy import text
-from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.db.base import Base
@@ -54,9 +53,7 @@ async def _ensure_test_database() -> None:
         database="postgres",
     )
     try:
-        exists = await conn.fetchval(
-            "SELECT 1 FROM pg_database WHERE datname = $1", target
-        )
+        exists = await conn.fetchval("SELECT 1 FROM pg_database WHERE datname = $1", target)
         if not exists:
             await conn.execute(f'CREATE DATABASE "{target}"')
     finally:

@@ -1,26 +1,52 @@
 [project]
-name = "poketmon"
+name = "pokecard-price"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
-    "alembic>=1.19.0",
-    "asyncpg>=0.31.0",
-    "fastapi>=0.141.1",
-    "pydantic-settings>=2.14.2",
-    "sqlalchemy>=2.0.51",
-    "uvicorn[standard]>=0.52.1",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "sqlalchemy>=2.0.36",
+    "asyncpg>=0.30",
+    "alembic>=1.14",
+    "pydantic-settings>=2.6",
 ]
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
-    "pytest>=9.1.1",
-    "pytest-asyncio>=1.4.0",
-    "ruff>=0.16.1",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.28",
+    "ruff>=0.8",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+# Alembic이 생성한 마이그레이션 파일은 템플릿 그대로이므로 린트 대상에서 제외한다
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "B",        # bugbear
+    "UP",       # pyupgrade
+    "DTZ",      # 타임존 없는 datetime 사용
+    "RUF",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Depends/Query 를 인자 기본값에 두는 것은 FastAPI의 표준 관용구다
+"app/api/*" = ["B008"]
+# SQLAlchemy 관계는 순환 임포트를 피하려 문자열 전방 참조를 쓴다.
+# 따옴표를 제거하면 NameError 가 발생한다.
+# str 을 함께 상속하면 Pydantic/FastAPI 직렬화와 문자열 비교가 자연스러워진다.
+# StrEnum 으로 바꿀 실익이 없어 UP042 는 제외한다.
+"app/models/*" = ["UP037", "UP042"]
+# env.py 의 app.models 임포트는 Base.metadata 에 모델을 등록하는 부수효과가 목적이다.
+# 제거하면 autogenerate 가 빈 마이그레이션을 만든다.
+"migrations/env.py" = ["F401", "E402"]

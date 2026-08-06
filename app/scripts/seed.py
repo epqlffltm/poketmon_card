@@ -19,11 +19,12 @@ from __future__ import annotations
 
 import asyncio
 import random
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
 
 from sqlalchemy import delete, func, select
 
+from app.core.clock import utc_today
 from app.db.session import AsyncSessionLocal
 from app.models.card import Card
 from app.models.price import Listing, PriceSnapshot, RawCondition
@@ -42,7 +43,7 @@ CARDS: list[tuple[int, str, str, str, str, str, int]] = [
     (4, "파이리", "Charmander", "base1", "46", "Common", 28_000),
     (7, "꼬부기", "Squirtle", "base1", "63", "Common", 25_000),
     (2, "이상해풀", "Ivysaur", "base1", "30", "Uncommon", 33_000),
-    (133, "이브이", "Eevee", "base2", "51", "Common", 38_000),
+    (133, "이브이", "Eevee", "jungle", "51", "Common", 38_000),
 ]
 
 # 상태별 가격 배율. NM 대비 얼마나 떨어지는지.
@@ -113,7 +114,7 @@ async def seed_listings(session, cards: list[Card]) -> int:
     await session.execute(delete(Listing))
     await session.commit()
 
-    today = date.today()
+    today = utc_today()
     rows: list[Listing] = []
     empty_days = 0
     seq = 0
@@ -155,7 +156,7 @@ async def seed_listings(session, cards: list[Card]) -> int:
                                     hour=random.randrange(24),
                                     minute=random.randrange(60),
                                 ),
-                                tzinfo=timezone.utc,
+                                tzinfo=UTC,
                             ),
                         )
                     )
@@ -197,7 +198,7 @@ async def build_snapshots(session) -> int:
     await session.execute(delete(PriceSnapshot))
     await session.commit()
 
-    today = date.today()
+    today = utc_today()
     made = await backfill(session, today - timedelta(days=DAYS), today)
     print(f"스냅샷 {made}건 생성")
     return made

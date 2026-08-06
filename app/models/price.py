@@ -75,18 +75,14 @@ class Listing(Base):
     condition: Mapped[RawCondition | None] = mapped_column(
         SAEnum(RawCondition, name="raw_condition"), nullable=True
     )
-    grader: Mapped[Grader | None] = mapped_column(
-        SAEnum(Grader, name="grader"), nullable=True
-    )
+    grader: Mapped[Grader | None] = mapped_column(SAEnum(Grader, name="grader"), nullable=True)
     grade: Mapped[Decimal | None] = mapped_column(Numeric(3, 1), nullable=True)
 
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default="KRW")
 
     # 집계 시 제외할 매물(벌크 묶음, 장난 매물 등)을 배치가 표시한다.
-    is_outlier: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default="false"
-    )
+    is_outlier: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 
     listed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     collected_at: Mapped[datetime] = mapped_column(
@@ -110,16 +106,12 @@ class PriceSnapshot(Base):
     __tablename__ = "price_snapshot"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    card_id: Mapped[int] = mapped_column(
-        ForeignKey("card.id", ondelete="CASCADE"), nullable=False
-    )
+    card_id: Mapped[int] = mapped_column(ForeignKey("card.id", ondelete="CASCADE"), nullable=False)
 
     condition: Mapped[RawCondition | None] = mapped_column(
         SAEnum(RawCondition, name="raw_condition"), nullable=True
     )
-    grader: Mapped[Grader | None] = mapped_column(
-        SAEnum(Grader, name="grader"), nullable=True
-    )
+    grader: Mapped[Grader | None] = mapped_column(SAEnum(Grader, name="grader"), nullable=True)
     grade: Mapped[Decimal | None] = mapped_column(Numeric(3, 1), nullable=True)
 
     snapshot_date: Mapped[date] = mapped_column(Date, nullable=False)

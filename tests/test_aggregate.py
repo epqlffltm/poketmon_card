@@ -10,7 +10,7 @@ mock 으로는 의미 있는 검증이 불가능하다.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 
 import pytest
@@ -30,7 +30,7 @@ def listing(card_id: int, price: int, *, condition=RawCondition.NM, seq: int = 0
         external_id=f"t-{condition.value}-{seq}-{price}",
         condition=condition,
         price=Decimal(price),
-        listed_at=datetime.combine(TARGET, time(12, 0), tzinfo=timezone.utc),
+        listed_at=datetime.combine(TARGET, time(12, 0), tzinfo=UTC),
     )
 
 
@@ -61,9 +61,7 @@ class TestBasicAggregation:
     async def test_다른_날짜의_매물은_포함하지_않는다(self, session, card):
         session.add(listing(card.id, 10_000, seq=1))
         other = listing(card.id, 999_000, seq=2)
-        other.listed_at = datetime.combine(
-            date(2026, 8, 5), time(12, 0), tzinfo=timezone.utc
-        )
+        other.listed_at = datetime.combine(date(2026, 8, 5), time(12, 0), tzinfo=UTC)
         session.add(other)
         await session.commit()
 
@@ -159,7 +157,7 @@ class TestNullJoin:
             grader=Grader.PSA,
             grade=Decimal("10"),
             price=Decimal(500_000),
-            listed_at=datetime.combine(TARGET, time(12, 0), tzinfo=timezone.utc),
+            listed_at=datetime.combine(TARGET, time(12, 0), tzinfo=UTC),
         )
         session.add(graded)
         await session.commit()

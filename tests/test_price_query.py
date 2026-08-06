@@ -90,9 +90,7 @@ class TestFallback:
 
     def test_기준일_이후_스냅샷은_참조하지_않는다(self):
         """5일 전 데이터가 있어도 7일 변동률은 그것을 쓰면 안 된다."""
-        rates = compute_change_rates(
-            [snap(9, 10_000), snap(5, 20_000), snap(0, 11_000)]
-        )
+        rates = compute_change_rates([snap(9, 10_000), snap(5, 20_000), snap(0, 11_000)])
         assert rates["7d"].base_date == TODAY - timedelta(days=9)
 
     def test_모든_구간이_같은_스냅샷을_참조할_수_있다(self):

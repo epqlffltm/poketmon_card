@@ -11,13 +11,14 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.clock import utc_today
 from app.db.session import get_session
 from app.models.card import Card
 from app.models.price import RawCondition
@@ -58,31 +59,25 @@ async def list_cards(session: AsyncSession = Depends(get_session)) -> list[Card]
 )
 async def get_card_prices(
     card_id: int,
-    condition: RawCondition = Query(
-        default=RawCondition.NM, description="카드 상태 등급"
-    ),
-    period: Literal["7d", "30d", "90d"] = Query(
-        default="30d", description="history 에 담을 기간"
-    ),
+    condition: RawCondition = Query(default=RawCondition.NM, description="카드 상태 등급"),
+    period: Literal["7d", "30d", "90d"] = Query(default="30d", description="history 에 담을 기간"),
     session: AsyncSession = Depends(get_session),
 ) -> CardPriceResponse:
     card = await session.get(Card, card_id)
     if card is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="card not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="card not found")
 
     # 변동률 계산에 필요한 만큼 넉넉히 조회한다.
     # 빈 날짜 fallback 때문에 기준일보다 더 과거를 참조할 수 있으므로 여유분을 둔다.
     lookback = max(PERIOD_DAYS[period], max(CHANGE_WINDOWS.values())) + 14
     snapshots = await fetch_history(
-        session, card_id, condition, date.today() - timedelta(days=lookback)
+        session, card_id, condition, utc_today() - timedelta(days=lookback)
     )
 
     rates = compute_change_rates(snapshots)
 
     # 응답에 담을 구간은 사용자가 요청한 period 만큼만 잘라낸다.
-    visible_from = date.today() - timedelta(days=PERIOD_DAYS[period])
+    visible_from = utc_today() - timedelta(days=PERIOD_DAYS[period])
     history = [s for s in snapshots if s.snapshot_date >= visible_from]
 
     def to_rate(label: str) -> ChangeRate | None:

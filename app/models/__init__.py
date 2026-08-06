@@ -8,4 +8,4 @@ Alembic autogenerate가 테이블을 인식하려면 모든 모델이 Base.metad
 from app.models.card import Card
 from app.models.price import Grader, Listing, PriceSnapshot, RawCondition
 
-__all__ = ["Card", "Listing", "PriceSnapshot", "RawCondition", "Grader"]
+__all__ = ["Card", "Grader", "Listing", "PriceSnapshot", "RawCondition"]

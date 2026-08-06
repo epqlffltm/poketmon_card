@@ -104,8 +104,6 @@ class CardPriceResponse(BaseModel):
 
     card: CardSummary
     condition: RawCondition
-    current: CurrentPrice | None = Field(
-        default=None, description="스냅샷이 하나도 없으면 null"
-    )
+    current: CurrentPrice | None = Field(default=None, description="스냅샷이 하나도 없으면 null")
     change_rates: ChangeRates
     history: list[PricePoint]

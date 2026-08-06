@@ -14,7 +14,7 @@ build_snapshot_for_date 는 멱등하다.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -94,7 +94,7 @@ async def build_snapshot_for_date(session: AsyncSession, target: date) -> int:
 
     멱등하므로 배치 재실행이나 과거 날짜 백필에 그대로 쓸 수 있다.
     """
-    start_at = datetime.combine(target, time.min, tzinfo=timezone.utc)
+    start_at = datetime.combine(target, time.min, tzinfo=UTC)
     end_at = start_at + timedelta(days=1)
 
     result = await session.execute(

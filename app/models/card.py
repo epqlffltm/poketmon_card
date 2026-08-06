@@ -43,6 +43,4 @@ class Card(Base):
         back_populates="card", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (
-        UniqueConstraint("set_code", "card_number", name="uq_card_set_number"),
-    )
+    __table_args__ = (UniqueConstraint("set_code", "card_number", name="uq_card_set_number"),)
