@@ -1,8 +1,10 @@
 # 포켓몬 카드 중고 시세 API
 
-카드별 중고 시세를 **최소가 / 최대가 / 평균가 / 중앙값**과 **기간별 변동률**로 제공하는 백엔드 API.
+카드별 중고 시세를 **최소가 / 최대가 / 평균가 / 중앙값**과 **기간별 변동률**로 제공하는 웹 서비스.
 
 시범 대상 5종: 피카츄, 파이리, 꼬부기, 이상해풀, 이브이
+
+![시세 조회 화면](docs/images/overview.png)
 
 ---
 
@@ -17,6 +19,7 @@
 | 드라이버 | asyncpg |
 | 마이그레이션 | Alembic |
 | 테스트 | pytest, pytest-asyncio |
+| 프론트엔드 | Vanilla JS, Chart.js |
 | 패키지 관리 | uv |
 
 ---
@@ -24,20 +27,23 @@
 ## 실행 방법
 
 ```bash
-docker compose up -d          # PostgreSQL 16 기동
-uv sync                       # uv.lock 기준 의존성 설치
+docker compose up -d                 # PostgreSQL 16 기동
+uv sync                              # uv.lock 기준 의존성 설치
 cp .env.example .env
 
-uv run alembic upgrade head   # 스키마 생성
-uv run python -m app.scripts.seed   # 더미 데이터 생성 및 집계
+uv run alembic upgrade head          # 스키마 생성
+uv run python -m app.scripts.seed    # 더미 데이터 생성 및 집계
 
 uv run uvicorn app.main:app --reload
 ```
 
-API 문서: `http://localhost:8000/docs`
+| 주소 | 내용 |
+|---|---|
+| `http://localhost:8000` | 시세 조회 화면 |
+| `http://localhost:8000/docs` | API 문서 (Swagger) |
 
 ```bash
-uv run pytest                 # 27개 테스트
+uv run pytest                        # 27개 테스트
 ```
 
 > 테스트는 `pokecard_test` 데이터베이스를 자동 생성해 사용하므로
@@ -63,6 +69,20 @@ app/
 ├── api/v1/cards.py        엔드포인트
 ├── scripts/seed.py        개발용 더미 데이터
 └── main.py                앱 진입점
+
+static/
+├── index.html
+├── css/style.css
+├── js/
+│   ├── api.js             백엔드 응답을 아는 유일한 모듈
+│   ├── chart.js           Chart.js 래핑
+│   └── app.js             화면 조립 및 상태 관리
+└── vendor/                Chart.js (MIT)
+
+tests/
+├── conftest.py            테스트 DB 픽스처
+├── test_price_query.py    변동률 단위 테스트 (15)
+└── test_aggregate.py      집계 통합 테스트 (12)
 ```
 
 ---
@@ -108,7 +128,8 @@ card ─┬─< listing         수집한 개별 매물 원본
 ### 설계 결정 3 — NULL 처리
 
 미감정 카드는 `grader`, `grade`가 NULL이다.
-표준 SQL에서 NULL은 서로 같지 않은 값으로 취급되므로, 이로 인해 **정반대 방향의 문제가 두 곳에서 발생한다.**
+표준 SQL에서 NULL은 서로 같지 않은 값으로 취급되므로,
+이로 인해 **정반대 방향의 문제가 두 곳에서 발생한다.**
 
 **유니크 제약 — 막아야 할 것을 막지 못한다**
 
@@ -164,8 +185,8 @@ CREATE UNIQUE INDEX ux_snapshot_variant_date ON price_snapshot
 표본이 8건 미만이면 절단이 오히려 왜곡이므로 건너뛴다.
 평균과 함께 중앙값도 저장하며, 중고 시세에서는 중앙값이 더 안정적인 지표다.
 
-`percentile_cont`는 ordered-set aggregate라 `OVER (PARTITION BY)`로 쓸 수 없다.
-따라서 경계를 먼저 구한 뒤 다시 조인하는 2단계 CTE 구조가 강제된다.
+> `percentile_cont`는 ordered-set aggregate라 `OVER (PARTITION BY)`로 쓸 수 없다.
+> 따라서 경계를 먼저 구한 뒤 다시 조인하는 2단계 CTE 구조가 강제된다.
 
 ### 설계 결정 5 — 변동률의 빈 날짜 처리
 
@@ -184,6 +205,8 @@ CREATE UNIQUE INDEX ux_snapshot_variant_date ON price_snapshot
 ```json
 "day_1": { "rate": "-4.27", "base_date": "2026-08-04", "base_price": "42800.00" }
 ```
+
+화면에서는 요청 기간과 실제 기준일이 어긋난 경우 `(실제 2일 전)`으로 강조 표시한다.
 
 ### 설계 결정 6 — 집계는 raw SQL
 
@@ -216,6 +239,40 @@ CREATE UNIQUE INDEX ux_snapshot_variant_date ON price_snapshot
 30일 변동률을 계산하려면 30일 전 스냅샷이 필요하므로,
 `period=7d` 요청에도 내부적으로는 30일 이상을 조회한다.
 이를 맞추지 않으면 `period=7d`일 때 `day_30`이 항상 `null`이 된다.
+
+---
+
+## 프론트엔드
+
+정적 파일을 FastAPI가 직접 서빙한다.
+별도 서버로 띄우면 오리진이 달라져 CORS 설정이 필요하지만,
+같은 오리진에서 제공하면 그 자체가 불필요해진다.
+
+JS는 세 모듈로 분리했다.
+
+| 모듈 | 책임 |
+|---|---|
+| `api.js` | 백엔드 응답 형태를 아는 유일한 곳 |
+| `chart.js` | Chart.js 래핑 |
+| `app.js` | 화면 조립과 상태 관리 |
+
+응답 구조가 바뀌어도 `api.js`만 고치면 되도록 화면 로직과 분리했다.
+
+차트 라이브러리는 CDN 대신 `static/vendor/`에 포함했다.
+오프라인 환경과 CDN 장애에서도 동작하며, 원저작자 라이선스를 함께 둔다.
+
+### 백엔드 설계가 화면에 드러나는 지점
+
+- **변동률의 `null`** — "0%"가 아니라 "비교 데이터 없음"으로 표시하고 색을 달리한다
+- **`base_date` 노출** — 요청 기간과 실제 비교 시점이 어긋나면 강조 표시한다
+- **절단 전후 병기** — 원본 최대가가 절단값의 1.2배를 넘으면 원본값을 함께 보여준다
+- **표본 부족 표시** — 표본 8건 미만인 날은 min–max 밴드를 그리지 않고 점만 찍는다
+
+마지막 항목은 실제로 화면을 만든 뒤에야 드러난 문제였다.
+표본이 부족한 날은 백엔드가 이상치 절단을 건너뛰므로 min/max에 극단값이 남고,
+이를 그대로 그리면 **y축이 스파이크에 끌려가 정작 중요한 가격대가 납작하게 눌린다.**
+해당 구간의 밴드를 끊어 축 범위를 정상화하면서,
+동시에 "이 날은 신뢰도가 낮다"를 시각적으로 전달하도록 했다.
 
 ---
 
@@ -272,10 +329,28 @@ uv run python -m app.scripts.seed
 
 ---
 
+## 알려진 기술 부채
+
+- **절단 임계값 중복** — `chart.js`의 `MIN_SAMPLES`가 백엔드 `min_samples_for_trimming`과
+  수동으로 동기화되어 있다. 응답의 `PricePoint`에 절단 적용 여부를 담으면
+  프론트가 임계값을 알 필요가 없어진다.
+- **`set_code` 검증 부재** — 자유 문자열이라 오타를 막지 못한다.
+  실제로 정글 세트를 `jungle`로 적어 이미지가 깨진 적이 있다(정답은 `base2`).
+  외부 시세 API를 연동하면 조회 실패로 이어지므로 별도 테이블이나 Enum이 필요하다.
+
 ## 남은 작업
 
 - [ ] 외부 시세 API 어댑터 (`source` 컬럼으로 출처 구분)
 - [ ] 이상치 자동 탐지 → `listing.is_outlier` 마킹 배치
 - [ ] 집계 배치 스케줄링
 - [ ] 감정(graded) 카드 시세 노출
-- [ ] 프론트엔드 (차트)
+- [ ] 카드 간 시세 비교 화면
+
+---
+
+## 라이선스 및 출처
+
+- 카드 이미지는 [pokemontcg.io](https://pokemontcg.io)의 URL을 참조하며 직접 호스팅하지 않는다.
+- [Chart.js](https://www.chartjs.org) v4.5.1 (MIT) — `static/vendor/`
+- 포켓몬 및 관련 상표는 Nintendo / Creatures Inc. / GAME FREAK inc.의 자산이다.
+  본 프로젝트는 학습 목적의 비상업적 결과물이다.

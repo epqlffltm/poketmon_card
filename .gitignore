@@ -4,3 +4,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
+
+# 에디터
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+desktop.ini

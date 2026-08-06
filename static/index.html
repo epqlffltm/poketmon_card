@@ -1,0 +1,86 @@
+<!-- static/index.html -->
+<!--
+  카드 시세 조회 화면.
+
+  마크업만 담당하고 데이터 바인딩은 js/app.js 가 수행한다.
+  차트 라이브러리는 CDN 대신 vendor 에 포함해 오프라인에서도 동작하게 했다.
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>포켓몬 카드 중고 시세</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <header class="header">
+    <h1 class="header__title">포켓몬 카드 중고 시세</h1>
+    <p class="header__subtitle">중고 매물을 일별로 집계해 시세와 변동률을 제공합니다</p>
+  </header>
+
+  <main class="layout">
+    <!-- 카드 선택 -->
+    <aside class="sidebar">
+      <h2 class="sidebar__title">카드</h2>
+      <ul class="card-list" id="card-list">
+        <li class="card-list__empty">불러오는 중…</li>
+      </ul>
+    </aside>
+
+    <section class="content" id="content" hidden>
+      <!-- 선택된 카드 정보 -->
+      <div class="card-header">
+        <img class="card-header__image" id="card-image" alt="">
+        <div class="card-header__info">
+          <h2 class="card-header__name" id="card-name"></h2>
+          <p class="card-header__meta" id="card-meta"></p>
+        </div>
+      </div>
+
+      <!-- 조회 조건 -->
+      <div class="controls">
+        <div class="control-group">
+          <span class="control-group__label">상태</span>
+          <div class="segmented" id="condition-select"></div>
+        </div>
+        <div class="control-group">
+          <span class="control-group__label">기간</span>
+          <div class="segmented" id="period-select"></div>
+        </div>
+      </div>
+
+      <!-- 현재 시세 -->
+      <div class="price-grid" id="price-grid"></div>
+
+      <!-- 변동률 -->
+      <div class="change-grid" id="change-grid"></div>
+
+      <!-- 차트 -->
+      <div class="chart-panel">
+        <div class="chart-panel__head">
+          <h3 class="chart-panel__title">시세 추이</h3>
+          <span class="chart-panel__legend">
+            <i class="dot dot--band"></i> 최소–최대 구간
+            <i class="dot dot--line"></i> 평균가
+            <i class="dot dot--thin"></i> 표본 부족
+          </span>
+        </div>
+        <div class="chart-panel__body">
+          <canvas id="price-chart"></canvas>
+        </div>
+        <p class="chart-panel__note" id="chart-note"></p>
+      </div>
+    </section>
+
+    <section class="empty-state" id="empty-state">
+      왼쪽에서 카드를 선택하세요.
+    </section>
+  </main>
+
+  <script src="/static/vendor/chart.umd.min.js"></script>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/chart.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

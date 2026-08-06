@@ -42,7 +42,7 @@ CARDS: list[tuple[int, str, str, str, str, str, int]] = [
     (4, "파이리", "Charmander", "base1", "46", "Common", 28_000),
     (7, "꼬부기", "Squirtle", "base1", "63", "Common", 25_000),
     (2, "이상해풀", "Ivysaur", "base1", "30", "Uncommon", 33_000),
-    (133, "이브이", "Eevee", "jungle", "51", "Common", 38_000),
+    (133, "이브이", "Eevee", "base2", "51", "Common", 38_000),
 ]
 
 # 상태별 가격 배율. NM 대비 얼마나 떨어지는지.
