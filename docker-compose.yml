@@ -1,0 +1,22 @@
+services:
+  db:
+    # NULLS NOT DISTINCT 는 PostgreSQL 15부터 지원된다. 14 이하로 내리면 안 됨.
+    image: postgres:16-alpine
+    container_name: pokecard-db
+    environment:
+      POSTGRES_USER: poke
+      POSTGRES_PASSWORD: poke
+      POSTGRES_DB: pokecard
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - pokecard-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U poke -d pokecard"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pokecard-pgdata:
