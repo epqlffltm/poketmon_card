@@ -17,6 +17,7 @@ from __future__ import annotations
 from bisect import bisect_right
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import NamedTuple
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -61,22 +62,39 @@ def _snapshot_on_or_before(
     return snapshots[idx] if idx >= 0 else None
 
 
+class ChangeRate(NamedTuple):
+    """변동률과 그것을 계산할 때 실제로 참조한 스냅샷 날짜.
+
+    base_date 를 함께 반환하는 이유는, 빈 날짜가 많으면
+    45일 전 스냅샷으로 '1일 변동률'이 계산되는 상황이 실제로 가능하기 때문이다.
+    숫자만 내려주면 클라이언트가 이를 구분할 방법이 없다.
+    """
+
+    rate: Decimal
+    base_date: date
+    base_price: Decimal
+
+
 def compute_change_rates(
     snapshots: list[PriceSnapshot],
-) -> dict[str, Decimal | None]:
-    """기준가 대비 변동률(%). 비교 대상이 없으면 None."""
+) -> dict[str, ChangeRate | None]:
+    """기준가 대비 변동률(%). 비교 대상이 없으면 None.
+
+    None 은 '변동 없음'이 아니라 '비교 가능한 과거 데이터 없음'을 뜻한다.
+    """
     if not snapshots:
         return {label: None for label in CHANGE_WINDOWS}
 
     dates = [s.snapshot_date for s in snapshots]
     latest = snapshots[-1]
-    rates: dict[str, Decimal | None] = {}
+    rates: dict[str, ChangeRate | None] = {}
 
     for label, days in CHANGE_WINDOWS.items():
         target = latest.snapshot_date - timedelta(days=days)
         past = _snapshot_on_or_before(snapshots, dates, target)
 
-        # fallback 으로 자기 자신을 집어오면 변동률이 항상 0% 로 나온다.
+        # fallback 이 자기 자신을 집어오면 변동률이 항상 0% 로 나온다.
+        # 오류가 발생하지 않아 발견하기 어려운 종류의 버그이므로 명시적으로 배제한다.
         if past is None or past.snapshot_date >= latest.snapshot_date:
             rates[label] = None
             continue
@@ -85,6 +103,10 @@ def compute_change_rates(
             continue
 
         delta = (latest.avg_price - past.avg_price) / past.avg_price * 100
-        rates[label] = delta.quantize(Decimal("0.01"))
+        rates[label] = ChangeRate(
+            rate=delta.quantize(Decimal("0.01")),
+            base_date=past.snapshot_date,
+            base_price=past.avg_price,
+        )
 
     return rates
