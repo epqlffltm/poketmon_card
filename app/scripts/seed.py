@@ -3,7 +3,7 @@
 """
 개발용 더미 데이터 생성 스크립트.
 
-카드 5종과 60일치 매물(listing)을 삽입한다. 집계는 수행하지 않는다.
+카드 5종과 60일치 매물(listing)을 삽입한 뒤, 전체 기간을 집계해 스냅샷을 만든다.
 
 의도적으로 '지저분한' 데이터를 만든다.
 깨끗한 데이터로는 이상치 필터와 변동률 fallback이 실제로 동작하는지 검증할 수 없기 때문이다.
@@ -26,7 +26,8 @@ from sqlalchemy import delete, func, select
 
 from app.db.session import AsyncSessionLocal
 from app.models.card import Card
-from app.models.price import Listing, RawCondition
+from app.models.price import Listing, PriceSnapshot, RawCondition
+from app.services.aggregate import backfill
 
 # 실행할 때마다 같은 데이터가 나오도록 고정한다.
 # 집계 결과를 눈으로 비교하며 디버깅하려면 재현 가능해야 한다.
@@ -191,10 +192,22 @@ async def report(session) -> None:
     print("\n최소/최대가 평균에서 크게 벗어나 있다면 이상치가 제대로 섞인 것이다.")
 
 
+async def build_snapshots(session) -> int:
+    """삽입한 매물 전 기간을 집계한다."""
+    await session.execute(delete(PriceSnapshot))
+    await session.commit()
+
+    today = date.today()
+    made = await backfill(session, today - timedelta(days=DAYS), today)
+    print(f"스냅샷 {made}건 생성")
+    return made
+
+
 async def main() -> None:
     async with AsyncSessionLocal() as session:
         cards = await seed_cards(session)
         await seed_listings(session, cards)
+        await build_snapshots(session)
         await report(session)
 
 
