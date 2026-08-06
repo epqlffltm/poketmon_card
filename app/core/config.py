@@ -1,3 +1,10 @@
+# app/core/config.py
+
+"""
+.env 기반 애플리케이션 설정. 전역 settings 싱글턴을 제공한다.
+집계 시 사용할 이상치 절단 기준도 여기서 관리해 코드 수정 없이 조정할 수 있게 했다.
+"""
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
