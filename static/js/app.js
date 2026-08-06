@@ -183,12 +183,20 @@
       period: state.period,
     });
 
-    $("card-image").src = data.card.image_url || "";
-    $("card-image").alt = data.card.name_ko;
-    $("card-name").textContent = data.card.name_ko;
-    $("card-meta").textContent =
+    const meta =
       `${data.card.name_en} · ${data.card.set_code} #${data.card.card_number}` +
       (data.card.rarity ? ` · ${data.card.rarity}` : "");
+
+    $("card-image").src = data.card.image_url || "";
+    $("card-image").alt = data.card.name_ko;
+    $("card-thumb").disabled = !data.card.image_url;
+
+    // 확대 보기에 필요한 정보를 버튼에 보관한다
+    $("card-thumb").dataset.url = data.card.image_url || "";
+    $("card-thumb").dataset.name = data.card.name_ko;
+    $("card-thumb").dataset.caption = `${data.card.name_ko} · ${meta}`;
+    $("card-name").textContent = data.card.name_ko;
+    $("card-meta").textContent = meta;
 
     renderPrices(data.current);
     renderChanges(data.change_rates, data.current?.snapshot_date);
@@ -220,7 +228,13 @@
   }
 
   async function init() {
+    ImageViewer.init();
     bindControls();
+
+    $("card-thumb").addEventListener("click", () => {
+      const el = $("card-thumb");
+      ImageViewer.open(el.dataset.url, el.dataset.name, el.dataset.caption);
+    });
 
     try {
       const cards = await API.listCards();

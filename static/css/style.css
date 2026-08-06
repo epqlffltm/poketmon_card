@@ -132,11 +132,111 @@ body {
   margin-bottom: 20px;
 }
 
+/* 이미지를 button 으로 감싸 키보드 접근이 가능하게 한다 */
+.card-header__thumb {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+  line-height: 0;
+  border-radius: 6px;
+}
+
+.card-header__thumb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .card-header__image {
   width: 76px;
   border-radius: 6px;
   background: var(--surface-2);
 }
+
+.card-header__zoom {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.card-header__thumb:hover .card-header__zoom,
+.card-header__thumb:focus-visible .card-header__zoom {
+  opacity: 1;
+}
+
+/* ---------- 이미지 확대 ---------- */
+
+.viewer {
+  padding: 0;
+  border: none;
+  background: none;
+  max-width: 92vw;
+  max-height: 92vh;
+  overflow: visible;
+}
+
+/* dialog 의 배경은 별도 의사요소로 스타일링한다 */
+.viewer::backdrop {
+  background: rgba(8, 9, 12, 0.86);
+  backdrop-filter: blur(2px);
+}
+
+.viewer__figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.viewer__image {
+  max-width: 88vw;
+  max-height: 78vh;
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  /* 고해상도 이미지 로딩 전 자리를 잡아둔다 */
+  min-width: 200px;
+  min-height: 280px;
+  background: var(--surface-2);
+}
+
+.viewer__image--loading { opacity: 0.35; }
+
+.viewer__caption {
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+}
+
+.viewer__close {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.viewer__close:hover { background: var(--surface-2); }
+
+/* 모달이 열린 동안 배경 스크롤을 막는다 */
+body:has(.viewer[open]) { overflow: hidden; }
 
 .card-header__name {
   margin: 0;

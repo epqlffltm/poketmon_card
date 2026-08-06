@@ -31,7 +31,11 @@
     <section class="content" id="content" hidden>
       <!-- 선택된 카드 정보 -->
       <div class="card-header">
-        <img class="card-header__image" id="card-image" alt="">
+        <button class="card-header__thumb" id="card-thumb" type="button"
+                aria-label="카드 이미지 확대">
+          <img class="card-header__image" id="card-image" alt="">
+          <span class="card-header__zoom">확대</span>
+        </button>
         <div class="card-header__info">
           <h2 class="card-header__name" id="card-name"></h2>
           <p class="card-header__meta" id="card-meta"></p>
@@ -78,9 +82,23 @@
     </section>
   </main>
 
+  <!--
+    카드 이미지 확대.
+    직접 오버레이를 만드는 대신 <dialog> 를 쓰면 배경 딤 처리, ESC 닫기,
+    포커스 가두기가 브라우저 기본 동작으로 제공된다.
+  -->
+  <dialog class="viewer" id="viewer">
+    <button class="viewer__close" id="viewer-close" type="button" aria-label="닫기">&times;</button>
+    <figure class="viewer__figure">
+      <img class="viewer__image" id="viewer-image" alt="">
+      <figcaption class="viewer__caption" id="viewer-caption"></figcaption>
+    </figure>
+  </dialog>
+
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/js/api.js"></script>
   <script src="/static/js/chart.js"></script>
+  <script src="/static/js/viewer.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
 </html>
