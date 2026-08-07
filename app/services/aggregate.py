@@ -15,11 +15,15 @@ build_snapshot_for_date 는 멱등하다.
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
+from time import perf_counter
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 # 집계는 관계형 대수 그 자체라서 ORM으로 표현하면 오히려 읽기 어려워진다.
 # percentile_cont / IS NOT DISTINCT FROM / ON CONFLICT 는 전부 PostgreSQL 고유 기능이므로
@@ -97,6 +101,7 @@ async def build_snapshot_for_date(session: AsyncSession, target: date) -> int:
     start_at = datetime.combine(target, time.min, tzinfo=UTC)
     end_at = start_at + timedelta(days=1)
 
+    started = perf_counter()
     result = await session.execute(
         _AGGREGATE_SQL,
         {
@@ -109,13 +114,25 @@ async def build_snapshot_for_date(session: AsyncSession, target: date) -> int:
         },
     )
     await session.commit()
-    return result.rowcount or 0
+
+    rows = result.rowcount or 0
+    elapsed = (perf_counter() - started) * 1000
+    logger.info(
+        "집계 완료 date=%s rows=%d %.1fms",
+        target,
+        rows,
+        elapsed,
+        extra={"snapshot_date": str(target), "rows": rows, "duration_ms": round(elapsed, 1)},
+    )
+    return rows
 
 
 async def backfill(session: AsyncSession, start: date, end: date) -> int:
+    logger.info("백필 시작 %s ~ %s", start, end)
     total = 0
     cursor = start
     while cursor <= end:
         total += await build_snapshot_for_date(session, cursor)
         cursor += timedelta(days=1)
+    logger.info("백필 완료 rows=%d", total, extra={"rows": total})
     return total

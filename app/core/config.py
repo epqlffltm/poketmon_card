@@ -14,10 +14,14 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://poke:poke@localhost:5432/pokecard"
     echo_sql: bool = False
 
+    log_level: str = "INFO"
+    # 배포 환경에서 켠다. 로그 수집 도구가 필드 단위로 파싱할 수 있게 된다.
+    log_json: bool = False
+
     # 집계 시 화면 노출용 min/max를 자를 퍼센타일 구간
     outlier_lower_percentile: float = 0.05
     outlier_upper_percentile: float = 0.95
-    # 표본이 이보다 적으면 퍼센타일 절단이 오히려 왜곡이라 건너뛴다
+    # 표본이 이보다 적으면 퍼센타일 절단이 무의미하므로 원본을 그대로 쓴다
     min_samples_for_trimming: int = 8
 
 
